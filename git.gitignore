@@ -1,0 +1,24 @@
+# Datasets
+datasets/
+data/
+cats_set/
+dogs_set/
+
+# Images
+*.jpg
+*.jpeg
+*.png
+
+# Python cache
+__pycache__/
+.ipynb_checkpoints/
+
+# Models
+*.h5
+*.pth
+*.pt
+*.pkl
+
+# Environment
+venv/
+.env
