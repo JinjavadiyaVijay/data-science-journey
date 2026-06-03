@@ -4,6 +4,8 @@ data/
 cats_set/
 dogs_set/
 
+Reinforcement_learing\manual/
+
 # Images
 *.jpg
 *.jpeg
