@@ -81,7 +81,7 @@ class Agent :
 
                     state = new_state 
                     episode_reward += reward
-                print(f"for episode: {episode} => reward :{episode_reward}")
+                print(f"for episode: {episode} => reward :{episode_reward}, epsilon: {epsilon}")
 
                 #epsilon decay 
                 epsilon  = max(epsilon * self.epsilon_decay, self.epsilon_min)
