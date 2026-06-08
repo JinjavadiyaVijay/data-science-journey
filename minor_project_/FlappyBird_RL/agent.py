@@ -74,8 +74,6 @@ class Agent :
                     with torch.no_grad():
                         action = policy_dqn(state.unsqueeze(dim = 0)).squeeze().argmax() # exploit
                 
-                # Next action:
-                action = env.action_space.sample()
             
                 # Processing:
                 next_state, reward, terminated, _, _ = env.step(action.item())
@@ -105,3 +103,47 @@ class Agent :
                     if step > self.network_sync_rate:
                         target_dqn.load_state_dict(policy_dqn.state_dict()) 
                         step = 0                   
+
+    def optimize(self, mini_batch, policy_dqn, target_dqn):
+        # get batch epx
+
+        # get exp
+        states, actions , next_states, rewards, terminations = zip(*mini_batch)
+
+        states = torch.stack(states)
+        actions = torch.stack(actions)
+        next_states = torch.stack(next_states)
+        staterewardss = torch.stack(rewards)
+        terminations = torch.stack(terminations)
+        
+        # calculate target Q-values - if terminations = true => zero 
+        with torch.no_grad() :
+                    target_q = rewards + (1-terminations) * self.gamma * target_dqn(next_states).max(dim=1)[0]
+
+        # calculate y_pred i.e. Q-value from current policy
+        current_q = policy_dqn(states).gether(dim=1, index = actions.unsqueeze(dim=1)).sequeeze()
+
+        # compute loss 
+        loss = self.loss_fn(current_q, target_q)
+
+        # optimize model
+
+        self.optim.zero_grad()
+        loss.backward()
+        self.optim.step()
+
+
+if __name__ == "__main__":
+    # Parse command line inputs
+    
+    parser = argparse.ArgumentParser(description = 'Train or test model.')
+    parser.add_argument('hyperparameters', help ='')
+    parser.add_argument('--train',help = 'Training mode', action= 'store_true')
+    args = parser.parse_args()
+
+    dql = Agent(param_set= args.hyperparameters)
+
+    if args.train:
+        dql.run(is_training= True)
+    else:
+        dql.run(is_training=False, render=True)
