@@ -8,6 +8,8 @@ import yaml
 import torch
 import torch.nn as nn
 import torch.optim as optim 
+import os
+import argparse
 
 # detect gpu and set gpu 
 if torch.cuda.is_available():
@@ -15,12 +17,16 @@ if torch.cuda.is_available():
 else:
     device = "cpu"
 
+RUNS_DIR = "runs"
+os.makedirs(RUNS_DIR, exist_ok=True)
 
 class Agent : 
-    def __init__(self,peram_set):
+    def __init__(self,param_set):
+        self.param_set = param_set
+
         with open ("perameter.yaml","r") as f:
-            all_pera_set = yaml.safe_load(f)
-            params = all_param_set[peram_set]
+            all_param_set = yaml.safe_load(f)
+            params = all_param_set[param_set]
 
             self.alpha = params["alpha"]
             self.gamma = params["gamma"]
@@ -32,14 +38,18 @@ class Agent :
             self.network_sync_rate = params["network_sync_rate"]
             self.reward_threshold = params["reward_threshold"]
            
-            self.loss = nn.MSELoss()
+            self.loss_fn = nn.MSELoss()
             self.optim = None
+
+            self.LOG_FILE = os.path.join(RUNS_DIR, f"{self.param_set}.log")
+            self.MODEL_FILE = os.path.join(RUNS_DIR, f"{self.param_set}.pt")
+
 
     def run(self,is_training = True,render = False):
         env = gym.make("FlappyBird-v0", render_mode="human" if render else None, use_lidar=True)
         
         num_state = env.observation_space.shape[0] # input dim
-        num_actions = env.actions_space.n # output dim
+        num_actions = env.action_space.n # output dim
 
         policy_dqn = dqn(num_state,num_actions).to(device)
         state, _ = env.reset()
@@ -56,6 +66,14 @@ class Agent :
 
             self.optim = optim.Adam(policy_dqn.parameters(), lr = self.alpha )
 
+            best_reward = float("-inf")
+
+        else :
+            # best policy load
+            policy_dqn.load_state_dict(torch.load(self.MODEL_FILE))
+            policy_dqn.eval()
+
+
         for episode in itertools.count():
 
             state,_ = env.reset()
@@ -64,40 +82,50 @@ class Agent :
             episode_reward = 0
             terminated = False
 
-            while not terminated :
+            while (not terminated and episode_reward < self.reward_threshold):
                 
                 if is_training and random.random()< epsilon :
                     action = env.action_space.sample() # explore
-                    action = torch.tensor(action, dtype = torch.float, device = device)
+                    action = torch.tensor(action, dtype = torch.long, device = device)
                     
                 else:
                     with torch.no_grad():
                         action = policy_dqn(state.unsqueeze(dim = 0)).squeeze().argmax() # exploit
                 
-            
-                # Processing:
                 next_state, reward, terminated, _, _ = env.step(action.item())
 
+                episode_reward += reward
+
+                # create tensor
                 reward = torch.tensor(reward, dtype = torch.float, device = device)
                 next_state = torch.tensor(next_state, dtype = torch.float, device = device)
 
                 if is_training:
-                    memory.append((state, action, new_state, reward, terminated))
+                    memory.append((state, action, next_state, reward, terminated))
                     step +=1
 
-                    state = new_state 
-                    episode_reward += reward
+                    state = next_state 
+                   
                 print(f"for episode: {episode} => reward :{episode_reward}, epsilon: {epsilon}")
 
                 if is_training:
                     #epsilon decay 
                     epsilon  = max(epsilon * self.epsilon_decay, self.epsilon_min)
-            
+
+                    if episode_reward > best_reward:
+                        log_msg = f"best reward = {episode_reward} for episode = {episode+1}"
+
+                        with open(self.LOG_FILE,"a") as f :
+                            f.write(log_msg +"\n")
+                        
+                        torch.save(policy_dqn.state_dict(), self.MODEL_FILE)
+                        best_reward = episode_reward
+
                 if is_training and len(memory)>self.mini_batch_size:
                     #get sample
                     min_batch = memory.sample(self.mini_batch_size)
 
-                    optimize(min_batch,policy_dqn, target_dqn)
+                    self.optimize(min_batch,policy_dqn, target_dqn)
 
                     # sync the network
                     if step > self.network_sync_rate:
@@ -113,15 +141,18 @@ class Agent :
         states = torch.stack(states)
         actions = torch.stack(actions)
         next_states = torch.stack(next_states)
-        staterewardss = torch.stack(rewards)
-        terminations = torch.stack(terminations)
+        rewards = torch.stack(rewards)
+        terminations = torch.tensor(terminations).float().to(device)
         
         # calculate target Q-values - if terminations = true => zero 
         with torch.no_grad() :
                     target_q = rewards + (1-terminations) * self.gamma * target_dqn(next_states).max(dim=1)[0]
 
         # calculate y_pred i.e. Q-value from current policy
-        current_q = policy_dqn(states).gether(dim=1, index = actions.unsqueeze(dim=1)).sequeeze()
+        current_q = policy_dqn(states).gather(
+            dim=1,
+            index=actions.unsqueeze(dim=1)
+        ).squeeze()
 
         # compute loss 
         loss = self.loss_fn(current_q, target_q)

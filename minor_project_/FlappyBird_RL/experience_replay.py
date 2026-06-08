@@ -4,7 +4,7 @@ import random
 class ReplayMemory():
     # create FIFO queue
     def __init__(self, max_len, seed=None):
-        self.memory = deque([],max_len = max_len)
+        self.memory = deque([],maxlen = max_len)
     
     def append(self, new_exp):
         self.memory.append(new_exp)

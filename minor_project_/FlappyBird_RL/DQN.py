@@ -6,7 +6,7 @@ class dqn(nn.Module):
     def __init__(self,state_dim = 12,action_dim =2, hidden_dim = 256):
         super(dqn,self).__init__()
 
-        self.model = nn.Squential(
+        self.model = nn.Sequential(
             nn.Linear(state_dim,hidden_dim),
             nn.ReLU(),
 
