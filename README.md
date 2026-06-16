@@ -226,11 +226,6 @@ This repository primarily serves as a personal learning archive. Suggestions, im
 
 ---
 
-# License
-
-This repository is intended for educational and learning purposes.
-
----
 
 
 <div align="center">
