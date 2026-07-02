@@ -4,6 +4,9 @@ data/
 cats_set/
 dogs_set/
 
+# Chroma vector database
+Deep_Learing/RAG/data/vector_store/
+
 Reinforcement_learing\manual/
 
 # Images
