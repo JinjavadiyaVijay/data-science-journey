@@ -1,4 +1,4 @@
-from flask import Flask, render_template,url_for
+from flask import Flask, render_template,url_for,request
 
 app = Flask(__name__,static_folder = "assest")
 
@@ -7,9 +7,18 @@ def Hello():
     print(url_for("static",filename = "style.css"))
     return render_template("index.html")
 
-@app.route("/login")
+@app.route("/login",methods = ["GET","POST"])
 def prime():
     return render_template("login.html")
+
+@app.route("/login-handle",methods = ["GET","POST"])
+def login_handle():
+    if request.method == "POST":
+        print(request.form)
+        name = request.form["username"]
+        password = request.form["password"]
+
+    return f"<p> Welcome {name}!</p>"
 
 app.run(debug = True)
 
