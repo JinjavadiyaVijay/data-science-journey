@@ -4,8 +4,9 @@ app = Flask(__name__,static_folder = "assest")
 
 @app.route("/")
 def Hello():
-    print(url_for("static",filename = "style.css"))
-    return render_template("index.html")
+    name = request.args.get("name",default = "naam hu he taru")
+    subject = request.args.get("subject",default = "pan subject to nakh")
+    return render_template("index.html",name=name,sub = subject)
 
 @app.route("/login",methods = ["GET","POST"])
 def prime():
