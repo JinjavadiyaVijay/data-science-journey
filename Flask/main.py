@@ -1,11 +1,13 @@
-from flask import Flask, render_template,url_for,request
+from flask import Flask, render_template,url_for,request,jsonify
 
 app = Flask(__name__,static_folder = "assest")
 
 @app.route("/")
 def Hello():
-    name = request.args.get("name",default = "naam hu he taru")
-    subject = request.args.get("subject",default = "pan subject to nakh")
+    
+    data ={
+        "message": "welcome to the platform!"
+    }
     return render_template("index.html",name=name,sub = subject)
 
 @app.route("/login",methods = ["GET","POST"])
