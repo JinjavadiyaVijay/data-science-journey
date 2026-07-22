@@ -14,7 +14,7 @@ Reinforcement_learing\manual/
 *.jpeg
 *.png
 *.csv
-
+*.db
 # Python cache
 __pycache__/
 .ipynb_checkpoints/
